@@ -7,8 +7,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GetMessage {
-    public List<String> getMessage(int chat_id) {
+public class GetChatInformation {
+    public List<String[]> getChatInformation() {
         Connection connection = null;
         try {
             // 1. Create connection
@@ -16,19 +16,21 @@ public class GetMessage {
             // 2. Create statment
             Statement statement = connection.createStatement();
             // 3. SQL query
-            String sql = "SELECT * FROM `detail` WHERE `chat_id` = " + chat_id + ";";
+            String sql = "SELECT * FROM `chat`;";
             // 4.
             ResultSet resultSet = statement.executeQuery(sql);
-            List<String> messages = new ArrayList<>();
+            List<String[]> chatList = new ArrayList<>();
             while (resultSet.next()) {
-                String message = resultSet.getString("message");
-                messages.add(message);
+                String[] chat = new String[2];
+                chat[0] = resultSet.getString("id");
+                chat[1] = resultSet.getString("time");
+                chatList.add(chat);
             }
             // 5. Close connection
             resultSet.close();
             DBConnection.closeConnection(connection);
             statement.close();
-            return messages;
+            return chatList;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
