@@ -1,9 +1,6 @@
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.SQLOutput;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Scanner;
 
 public class Main2 {
@@ -60,7 +57,7 @@ public class Main2 {
 
                     // write file to db.txt
                     try {
-                        BufferedWriter writer = new BufferedWriter(new FileWriter("db.txt", true)); // Open file in append mode
+                        BufferedWriter writer = new BufferedWriter(new FileWriter("db/db.txt", true)); // Open file in append mode
                         writer.write(sb.toString()); // Write the message to the file
                         writer.newLine(); // Add a newline character after the message
                         writer.close(); // Close the writer to save changes to the file

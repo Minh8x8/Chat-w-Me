@@ -38,7 +38,7 @@ public class ChatServer {
                     done = true;
                     break;
                 } else {
-                    System.out.println("Client: " + clientMessage);
+                    System.out.println(clientMessage);
                 }
             }
             shutdown();
