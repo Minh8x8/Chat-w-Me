@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class ChatServer {
     private ServerSocket server;
@@ -63,16 +65,21 @@ public class ChatServer {
         @Override
         public void run() {
             try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                LocalDateTime currentDateTime = LocalDateTime.now();
+                String formattedDateTime;
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
                 while (!done) {
                     if (inReader.ready()) {
+                        formattedDateTime = currentDateTime.format(formatter);
                         String message = inReader.readLine();
                         if (message.equals("/quit")) {
                             out.println("/quit");
                             inReader.close();
                             shutdown();
+                            System.out.println("Stop program");
                         } else {
-                            out.println(message);
+                            out.println("Server [" + formattedDateTime + "]: " + message);
                         }
                     }
                 }

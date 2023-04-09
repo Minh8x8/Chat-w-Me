@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class ChatClient {
     private Socket client;
@@ -35,7 +37,7 @@ public class ChatClient {
                     shutdown();
                     break;
                 } else {
-                    System.out.println("Server: " + serverMessage);
+                    System.out.println(serverMessage);
                 }
             }
             System.out.println("Stop program");
@@ -60,16 +62,20 @@ public class ChatClient {
         @Override
         public void run() {
             try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                LocalDateTime currentDateTime = LocalDateTime.now();
+                String formattedDateTime;
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
                 while (!done) {
                     if (inReader.ready()) {
+                        formattedDateTime = currentDateTime.format(formatter);
                         String message = inReader.readLine();
                         if (message.equals("/quit")) {
                             out.println("/quit");
                             inReader.close();
                             shutdown();
                         } else {
-                            out.println(message);
+                            out.println("Client [" + formattedDateTime + "]: " + message);
                         }
                     }
                 }
