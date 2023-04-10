@@ -172,14 +172,18 @@ public class ChatServer {
                         done = true;
                         break;
                     } else {
-
-                        System.out.println(clientMessage);
+                        try {
+                            process.receiveMessage(clientMessage);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            System.out.println(process.getMessage());
+                        }
                     }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-
         }
     }
 
