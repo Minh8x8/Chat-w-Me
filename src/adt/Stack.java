@@ -1,23 +1,28 @@
-public class Stack {
+package adt;
+
+public class Stack<E> {
     int top = -1;
-    char[] s;
+    Object[] s;
 
     public Stack() {
-        s = new char[256];
+        s = new Object[250];
     }
-    void push(char c) {
+    public void push(E c) {
         if (top == 256-1) throw new IndexOutOfBoundsException("Overflow");
         else top = top + 1;
         s[top] = c;
     }
-    char pop() {
+    public E pop() {
         if (top == -1) throw new IndexOutOfBoundsException("Underflow");
-        return s[top--];
+        return (E) s[top--];
     }
-    boolean isEmpty() {
+
+    public boolean isEmpty() {
         return top == -1;
     }
-    int size() {
-        return top;
+
+    public int size() {
+        return top+1;
     }
 }
+

@@ -1,15 +1,19 @@
-public class Queue {
+package adt;
+
+public class Queue<E> {
     int front = -1;
     int rear = -1;
     int max;
-    char[] q;
+    int size;
+    Object[] q;
 
     public Queue() {
-        this.max = 256;
-        this.q = new char[max];
+        this.max = 250;
+        this.q = new Object[max];
+        size = 0;
     }
 
-    void enQueue(char c) {
+    public void enQueue(E c) {
         if ((rear + 1) % max == front) {
             throw new IndexOutOfBoundsException("Overflow");
         }
@@ -23,12 +27,13 @@ public class Queue {
             rear = (rear + 1) % max;
         }
         q[rear] = c;
+        size++;
     }
-    char deQueue() {
+    public E deQueue() {
         if (front == -1) {
             throw new IndexOutOfBoundsException("Underflow");
         }
-        char val = q[front];
+        var val = q[front];
         if (front == rear){
             front = -1;
             rear = -1;
@@ -39,9 +44,23 @@ public class Queue {
         else {
             front = front + 1;
         }
-        return val;
+        size--;
+        return (E) val;
     }
-    boolean isEmpty() {
+
+    public boolean isEmpty() {
         return front == -1 && rear == -1;
     }
+
+    public void clear() {
+        for (int i = front; i != rear; i = (i+1)%max){
+            q[i] = null;
+        }
+        front = -1;
+        rear = -1;
+        size = 0;
+    }
+
+    public int size() {return size;}
 }
+

@@ -1,7 +1,8 @@
-package Server;
+package server;
 
+import transport.BufferOfMessage;
+import process.StackOfMessage;
 import db.DB;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,16 +36,17 @@ public class ChatServer {
 
             // create a thread for handle input
             InputHandler ih = new InputHandler();
-            Thread t = new Thread(ih);
-            t.start();
-            String clientMessage;
-            while ((clientMessage = in.readLine()) != null){
-                if (clientMessage.equals("/quit")) {
-                    done = true;
-                    break;
-                } else {
-                    System.out.println(clientMessage);
-                }
+            OutputHandler oh = new OutputHandler();
+            Thread input = new Thread(ih);
+            Thread output = new Thread(oh);
+            input.start();
+            output.start();
+            // Wait for the thread die
+            try {
+                input.join();
+                output.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
             shutdown();
         } catch (IOException e) {
@@ -111,6 +113,9 @@ public class ChatServer {
         public void run() {
             try {
                 DB db = new DB();
+                // Transport
+                BufferOfMessage transport = new BufferOfMessage();
+
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
                 LocalDateTime currentDateTime = LocalDateTime.now();
                 String formattedDateTime;
@@ -129,21 +134,52 @@ public class ChatServer {
                         } else if (message.equals("/help")) {
                             help();
                         } else if (message.startsWith("/show")) {
-                            String id = message.split("\\s+")[1];
                             try {
+                                String id = message.split("\\s+")[1];
                                 int chatID = Integer.parseInt(id);
                                 showIDChatHistory(db, chatID);
+                            } catch (ArrayIndexOutOfBoundsException e){
+                                System.out.println("Missing statement input");
                             } catch (NumberFormatException e) {
                                 System.out.println("Invalid input: Please input a number");
                             }
                         } else {
-                            out.println("Server [" + formattedDateTime + "]: " + message);
+                            message = "Server [" + formattedDateTime + "]: " + message;
+                            try {
+                                transport.addMessage(message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            } finally {
+                                out.println(transport.sendMessage());
+                            }
                         }
                     }
                 }
             } catch (IOException e) {
                 shutdown();
             }
+        }
+    }
+
+    public class OutputHandler implements Runnable {
+        @Override
+        public void run() {
+            StackOfMessage process = new StackOfMessage();
+            String clientMessage;
+            try {
+                while ((clientMessage = in.readLine()) != null) {
+                    if (clientMessage.equals("/quit")) {
+                        done = true;
+                        break;
+                    } else {
+
+                        System.out.println(clientMessage);
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
         }
     }
 

@@ -1,7 +1,6 @@
 package test;
 
-import ADT.Queue;
-import ADT.Stack;
+import adt.Queue;
 
 public class TestADT {
     public static void main(String[] args) {
