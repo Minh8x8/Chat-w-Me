@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public class ChatServer {
     private PrintWriter out;
     private BufferedReader in;
     private boolean done;
+    private List<String> messages;
 
     public ChatServer() {
         try {
@@ -30,10 +32,10 @@ public class ChatServer {
             client = server.accept();
             System.out.println("Client connected");
             System.out.println("/help for more information");
-            // create
+            // create variables
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-
+            messages = new ArrayList<>();
             // create a thread for handle input
             InputHandler ih = new InputHandler();
             OutputHandler oh = new OutputHandler();
@@ -49,9 +51,23 @@ public class ChatServer {
                 throw new RuntimeException(e);
             }
             shutdown();
+            System.out.println("Stop program");
         } catch (IOException e) {
             e.printStackTrace();
             shutdown();
+        }
+        // save message to database
+        // check if the conversation is null or not
+        if (!messages.isEmpty()) {
+            DB db = new DB();
+            LocalDate currentDate = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+            String currentTime = currentDate.format(formatter);
+            db.insertToTableChat(currentTime);
+            for(String message : messages){
+                db.insertMessage(message);
+            }
+            System.out.println("Save successfully");
         }
     }
     public void shutdown() {
@@ -128,7 +144,6 @@ public class ChatServer {
                             out.println("/quit");
                             inReader.close();
                             shutdown();
-                            System.out.println("Stop program");
                         } else if (message.equals("/history")) {
                             chatHistory(db);
                         } else if (message.equals("/help")) {
@@ -150,7 +165,9 @@ public class ChatServer {
                             } catch (Exception e) {
                                 e.printStackTrace();
                             } finally {
-                                out.println(transport.sendMessage());
+                                String send = transport.sendMessage();
+                                messages.add(send);
+                                out.println(send);
                             }
                         }
                     }
@@ -177,7 +194,9 @@ public class ChatServer {
                         } catch (Exception e) {
                             e.printStackTrace();
                         } finally {
-                            System.out.println(process.getMessage());
+                            String received = process.getMessage();
+                            messages.add(received);
+                            System.out.println(received);
                         }
                     }
                 }

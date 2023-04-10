@@ -91,7 +91,6 @@ public class DB {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, time);
             statement.executeUpdate();
-            System.out.println("Saved successfully!");
             statement.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);

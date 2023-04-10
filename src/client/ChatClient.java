@@ -42,6 +42,7 @@ public class ChatClient {
                 throw new RuntimeException(e);
             }
             shutdown();
+            System.out.println("Stop program");
         } catch (IOException e) {
             System.out.println("Connect failed");
         }
@@ -120,7 +121,6 @@ public class ChatClient {
                             out.println("/quit");
                             inReader.close();
                             shutdown();
-                            System.out.println("Stop program");
                         } else if (message.equals("/history")) {
                             chatHistory(db);
                         } else if (message.equals("/help")) {
