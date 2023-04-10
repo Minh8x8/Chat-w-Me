@@ -1,6 +1,8 @@
 package view;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import server.ChatServer;
+import server.Server;
 
 import java.awt.*;
 
@@ -10,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.List;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
@@ -18,32 +21,20 @@ public class ChatView extends JFrame {
     private JPanel contentPane;
     private JTextField inputField;
     private JTable historyTable;
-
-    /**
-     * Launch the application.
-     */
-    public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    ChatView frame = new ChatView();
-                    frame.setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
+    public JTextArea chatBox;
+    private ChatServer server;
+    private HistoryView hView;
     /**
      * Create the frame.
      */
-    public ChatView() {
+    public ChatView(ChatServer server) {
+        this.server = server;
         try {
             UIManager.setLookAndFeel( new FlatLightLaf() );
         } catch( Exception ex ) {
             System.err.println( "Failed to initialize LaF" );
         }
+        hView = new HistoryView();
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
@@ -51,7 +42,13 @@ public class ChatView extends JFrame {
                         "Are you sure you want to exit the program?", "Exit Program Confirmation",
                         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
                 if (confirmed == JOptionPane.YES_OPTION) {
-                    System.exit(0);
+                    try {
+                        hView.dispose();
+                        server.sendMessage("/quit");
+                        server.shutdown();
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
                 }
             }
         });
@@ -77,9 +74,13 @@ public class ChatView extends JFrame {
         tabbedPane.addTab("Chat", null, chatPanel, null);
         chatPanel.setLayout(null);
 
-        JTextArea chatBox = new JTextArea();
+        chatBox = new JTextArea();
         chatBox.setBounds(10, 21, 311, 230);
-        //chatBox.setEditable(false);
+        chatBox.append("Server started");
+        chatBox.setEditable(false); // to make it not editable
+        chatBox.setLineWrap(true); // to wrap lines
+        chatBox.setWrapStyleWord(true); // to wrap at word boundaries
+        chatBox.setBackground(Color.WHITE); // set background color to white
         chatPanel.add(chatBox);
 
         inputField = new JTextField();
@@ -91,6 +92,11 @@ public class ChatView extends JFrame {
         btnSendButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // TODO: Send message
+                String message = inputField.getText();
+                if (!message.equals("")) {
+                    server.sendMessage(message);
+                    inputField.setText("");
+                }
             }
         });
         btnSendButton.setBounds(251, 286, 70, 38);
@@ -126,6 +132,7 @@ public class ChatView extends JFrame {
         btnShowButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 // TODO: show history
+                showHistory();
             }
         });
         btnShowButton.setBounds(121, 277, 89, 32);
@@ -139,6 +146,25 @@ public class ChatView extends JFrame {
         lbAbout.setFont(new Font("Calibri", Font.PLAIN, 13));
         lbAbout.setBounds(10, 61, 294, 132);
         Aboutpanel.add(lbAbout);
+    }
+
+    public void printMessage(String message) {
+        chatBox.append("\n" + message);
+    }
+    public void setHistoryTable(List<String[]> tableChat){
+        DefaultTableModel model = (DefaultTableModel) historyTable.getModel();
+        for(String[] row : tableChat) {
+            model.addRow(new Object[]{row[0], row[1]});
+        }
+    }
+    public void showHistory() {
+        int row = historyTable.getSelectedRow();
+        if (row != -1) {
+            hView.setChatHistory(server.getMessages(++row));
+            hView.setTitle("Chat History [" + row + "]");
+            hView.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            hView.setVisible(true);
+        }
     }
 }
 

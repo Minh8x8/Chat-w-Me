@@ -84,6 +84,14 @@ public class DB {
         return tableDetail;
     }
 
+    public List<String> getSpecificChatId(int row_id) {
+        List<String> messages = new ArrayList<>();
+        for (String[] row : tableDetail) {
+            if (row[1].equals(String.valueOf(row_id))) messages.add(row[2]);
+        }
+        return messages;
+    }
+
     public void insertToTableChat(String time) {
         connectDB();
         String sql = "INSERT INTO `chat`(`time`) VALUES (?)";

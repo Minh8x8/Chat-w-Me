@@ -3,209 +3,156 @@ package server;
 import transport.BufferOfMessage;
 import process.StackOfMessage;
 import db.DB;
+import view.ChatView;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class ChatServer {
+    private ChatView chatView;
     private ServerSocket server;
     private Socket client;
     private PrintWriter out;
     private BufferedReader in;
     private boolean done;
+    private boolean isConnected = false;
+    ReceiveMessageHandler receiveMessageHandler;
     private List<String> messages;
 
     public ChatServer() {
         try {
+            chatView = new ChatView(this);
+            chatView.setTitle("Chat w Me - Server");
+            chatView.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
             done = false;
             // Start server
+            setHistoryTableInView();
             System.out.println("Server started");
+            chatView.printMessage("Wait for client connect to chat server");
             server = new ServerSocket(8080);
             client = server.accept();
             System.out.println("Client connected");
-            System.out.println("/help for more information");
-            // create variables
+            chatView.printMessage("Client connected ");
+            //chatView.chatBox.setEditable(true);
+            isConnected = true;
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             messages = new ArrayList<>();
-            // create a thread for handle input
-            InputHandler ih = new InputHandler();
-            OutputHandler oh = new OutputHandler();
-            Thread input = new Thread(ih);
-            Thread output = new Thread(oh);
-            input.start();
-            output.start();
-            // Wait for the thread die
+            receiveMessageHandler = new ReceiveMessageHandler();
+            receiveMessageHandler.start();
             try {
-                input.join();
-                output.join();
+                receiveMessageHandler.join();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            shutdown();
-            System.out.println("Stop program");
+        } catch (SocketException e){
+            System.out.println("Server closed");
         } catch (IOException e) {
             e.printStackTrace();
-            shutdown();
         }
         // save message to database
         // check if the conversation is null or not
-        if (!messages.isEmpty()) {
-            DB db = new DB();
-            LocalDate currentDate = LocalDate.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-            String currentTime = currentDate.format(formatter);
-            db.insertToTableChat(currentTime);
-            for(String message : messages){
-                db.insertMessage(message);
-            }
-            System.out.println("Save successfully");
-        }
+//        if (!messages.isEmpty()) {
+//            DB db = new DB();
+//            LocalDate currentDate = LocalDate.now();
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+//            String currentTime = currentDate.format(formatter);
+//            db.insertToTableChat(currentTime);
+//            for(String message : messages){
+//                db.insertMessage(message);
+//            }
+//            System.out.println("Save successfully");
+//        }
     }
     public void shutdown() {
         done = true;
         try {
-            in.close();
-            out.println("/quit");
-            out.close();
-            client.close();
-            server.close();
+            if (isConnected) {
+                in.close();
+                out.println("Server closed");
+                out.close();
+                client.close();
+                server.close();
+                receiveMessageHandler.interrupt();
+            }
+           else {
+               server.close();
+               receiveMessageHandler.interrupt();
+            }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            System.exit(0);
         }
     }
-
-    public class InputHandler implements Runnable {
-        public void help() {
-            System.out.println("-----List of commands-----");
-            System.out.println("/history : show the chat history");
-            System.out.println("/show [chat id] : show the chat history of the specified chat id");
-            System.out.println("/quit : stop the program");
-            System.out.println("--------------------------");
-        }
-
-        public void chatHistory(DB db) {
-            System.out.println("-----Chat History-----");
-            db.setDB();
-            List<String[]> chatList = db.getTableChat();
-            System.out.printf("%-5s%s", "id", "time\n");
-            for (String[] chat : chatList) {
-                System.out.printf("%-5s%s\n", chat[0], chat[1]);
-            }
-            System.out.println("----------------------");
-        }
-
-        public void showIDChatHistory(DB db, int id) {
-            db.setDB();
-            boolean isContainMessage = false;
-            List<String[]> detailTable = db.getTableDetail();
-            List<String> messages = new ArrayList<>();
-            for (String[] message : detailTable) {
-                if (Integer.parseInt(message[1]) == id) {
-                    messages.add(message[2]);
-                    isContainMessage = true;
-                }
-            }
-            if (!isContainMessage) {
-                System.out.println("Invalid message id");
-            } else {
-                System.out.println("----- Message Id ["+id+"] History -----");
-                for (String m : messages) {
-                    System.out.println(m);
-                }
-                System.out.println("---------------------------------------");
-            }
-        }
-
-        @Override
-        public void run() {
+    public void setHistoryTableInView() {
+        DB db = new DB();
+        db.setDB();
+        chatView.setHistoryTable(db.getTableChat());
+    }
+    public List<String> getMessages(int row_id) {
+        DB db = new DB();
+        db.setDB();
+        return db.getSpecificChatId(row_id);
+    }
+    public void sendMessage(String message){
+        if (isConnected) {
+            BufferOfMessage transport = new BufferOfMessage();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+            LocalDateTime currentDateTime = LocalDateTime.now();
+            String formattedDateTime = currentDateTime.format(formatter);
+            message = "Server [" + formattedDateTime + "]: " + message;
             try {
-                DB db = new DB();
-                // Transport
-                BufferOfMessage transport = new BufferOfMessage();
-
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-                LocalDateTime currentDateTime = LocalDateTime.now();
-                String formattedDateTime;
-                BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
-                while (!done) {
-                    if (inReader.ready()) {
-                        formattedDateTime = currentDateTime.format(formatter);
-                        String message = inReader.readLine();
-                        if (message.equals("/quit")) {
-                            out.println("/quit");
-                            inReader.close();
-                            shutdown();
-                        } else if (message.equals("/history")) {
-                            chatHistory(db);
-                        } else if (message.equals("/help")) {
-                            help();
-                        } else if (message.startsWith("/show")) {
-                            try {
-                                String id = message.split("\\s+")[1];
-                                int chatID = Integer.parseInt(id);
-                                showIDChatHistory(db, chatID);
-                            } catch (ArrayIndexOutOfBoundsException e){
-                                System.out.println("Missing statement input");
-                            } catch (NumberFormatException e) {
-                                System.out.println("Invalid input: Please input a number");
-                            }
-                        } else {
-                            message = "Server [" + formattedDateTime + "]: " + message;
-                            try {
-                                transport.addMessage(message);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            } finally {
-                                String send = transport.sendMessage();
-                                messages.add(send);
-                                out.println(send);
-                            }
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                shutdown();
+                transport.addMessage(message);
+                String send = transport.sendMessage();
+                messages.add(send);
+                chatView.printMessage(send);
+                out.println(send);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
-
-    public class OutputHandler implements Runnable {
+    public class ReceiveMessageHandler extends Thread {
         @Override
         public void run() {
             StackOfMessage process = new StackOfMessage();
             String clientMessage;
+            Scanner scanner;
             try {
-                while ((clientMessage = in.readLine()) != null) {
-                    if (clientMessage.equals("/quit")) {
-                        done = true;
-                        break;
-                    } else {
-                        try {
-                            process.receiveMessage(clientMessage);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        } finally {
-                            String received = process.getMessage();
-                            messages.add(received);
-                            System.out.println(received);
-                        }
-                    }
-                }
+                scanner = new Scanner(client.getInputStream());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            while (scanner.hasNextLine()) {
+                try {
+                    clientMessage = scanner.nextLine();
+                    process.receiveMessage(clientMessage);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    String received = process.getMessage();
+                    messages.add(received);
+                    chatView.printMessage(received);
+                }
+            }
         }
     }
-
     public static void main(String[] args) {
         ChatServer server = new ChatServer();
     }

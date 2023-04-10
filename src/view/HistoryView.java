@@ -3,6 +3,7 @@ package view;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import java.awt.*;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,6 +11,7 @@ import javax.swing.border.EmptyBorder;
 public class HistoryView extends JFrame {
 
     private JPanel contentPane;
+    private JTextArea textAreaChatHistory;
 
     /**
      * Launch the application.
@@ -48,11 +50,20 @@ public class HistoryView extends JFrame {
         setContentPane(contentPane);
         contentPane.setLayout(null);
 
-        JTextArea textAreaChatHistory = new JTextArea();
+        textAreaChatHistory = new JTextArea();
         textAreaChatHistory.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         textAreaChatHistory.setBounds(10, 11, 309, 341);
+        textAreaChatHistory.setEditable(false); // to make it not editable
+        textAreaChatHistory.setLineWrap(true); // to wrap lines
+        textAreaChatHistory.setWrapStyleWord(true); // to wrap at word boundaries
         contentPane.add(textAreaChatHistory);
     }
 
+    public void setChatHistory(List<String> messages) {
+        textAreaChatHistory.setText("");
+        for (String message : messages) {
+            textAreaChatHistory.append(message+"\n");
+        }
+    }
 }
 
