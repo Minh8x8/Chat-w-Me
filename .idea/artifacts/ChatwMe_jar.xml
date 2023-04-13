@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ChatwMe:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/ChatwMe_jar</output-path>
+    <root id="archive" name="ChatwMe.jar">
+      <element id="module-output" name="ChatwMe" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/mysql-connector-java-8.0.30.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/flatlaf-3.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/protobuf-java-3.19.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/jar_files.zip" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

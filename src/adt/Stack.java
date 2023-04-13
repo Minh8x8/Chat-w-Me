@@ -5,10 +5,10 @@ public class Stack<E> {
     Object[] s;
 
     public Stack() {
-        s = new Object[250];
+        s = new Object[300];
     }
     public void push(E c) {
-        if (top == 256-1) throw new IndexOutOfBoundsException("Overflow");
+        if (top == 300-1) throw new IndexOutOfBoundsException("Overflow");
         else top = top + 1;
         s[top] = c;
     }

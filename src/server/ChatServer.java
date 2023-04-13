@@ -25,10 +25,11 @@ public class ChatServer {
     private Socket client;
     private PrintWriter out;
     private BufferedReader in;
-    private boolean done;
     private boolean isConnected = false;
     ReceiveMessageHandler receiveMessageHandler;
     private List<String> messages;
+    private StackOfMessage stackOfReceiveMessage = new StackOfMessage();
+    private StackOfMessage stackOfSendMessage = new StackOfMessage();
 
     public ChatServer() {
         try {
@@ -39,24 +40,29 @@ public class ChatServer {
             e.printStackTrace();
         }
         try {
-            done = false;
             // Start server
             setHistoryTableInView();
+
             System.out.println("Server started");
             chatView.printMessage("Wait for client connect to chat server");
+
             server = new ServerSocket(8080);
             client = server.accept();
+
             System.out.println("Client connected");
             chatView.printMessage("Client connected ");
-            //chatView.chatBox.setEditable(true);
+
             isConnected = true;
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             messages = new ArrayList<>();
+
             receiveMessageHandler = new ReceiveMessageHandler();
             receiveMessageHandler.start();
             try {
                 receiveMessageHandler.join();
+                chatView.printMessage("Client is disconnected");
+                isConnected = false;
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -65,35 +71,17 @@ public class ChatServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // save message to database
-        // check if the conversation is null or not
-//        if (!messages.isEmpty()) {
-//            DB db = new DB();
-//            LocalDate currentDate = LocalDate.now();
-//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-//            String currentTime = currentDate.format(formatter);
-//            db.insertToTableChat(currentTime);
-//            for(String message : messages){
-//                db.insertMessage(message);
-//            }
-//            System.out.println("Save successfully");
-//        }
     }
     public void shutdown() {
-        done = true;
         try {
             if (isConnected) {
                 in.close();
                 out.println("Server closed");
                 out.close();
                 client.close();
-                server.close();
-                receiveMessageHandler.interrupt();
             }
-           else {
-               server.close();
-               receiveMessageHandler.interrupt();
-            }
+            server.close();
+            receiveMessageHandler.interrupt();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -112,26 +100,51 @@ public class ChatServer {
     }
     public void sendMessage(String message){
         if (isConnected) {
-            BufferOfMessage transport = new BufferOfMessage();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-            LocalDateTime currentDateTime = LocalDateTime.now();
-            String formattedDateTime = currentDateTime.format(formatter);
-            message = "Server [" + formattedDateTime + "]: " + message;
-            try {
-                transport.addMessage(message);
-                String send = transport.sendMessage();
-                messages.add(send);
-                chatView.printMessage(send);
-                out.println(send);
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (message.equals("L1VuZG8")) {
+                out.println(message);
             }
+            else {
+                BufferOfMessage transport = new BufferOfMessage();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                LocalDateTime currentDateTime = LocalDateTime.now();
+                String formattedDateTime = currentDateTime.format(formatter);
+                message = "Server [" + formattedDateTime + "]: " + message;
+                try {
+                    stackOfSendMessage.pushMessage(message);
+                    transport.addMessage(message);
+                    String send = transport.sendMessage();
+                    messages.add(send);
+                    chatView.printMessage(send);
+                    out.println(send);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    public void saveChat(){
+        /* save message to database
+        check if the conversation is null or not */
+        if (messages == null || messages.isEmpty()) {
+            System.out.println();
+            System.out.println("Nothing to save");
+        }
+        else {
+            DB db = new DB();
+            LocalDate currentDate = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+            String currentTime = currentDate.format(formatter);
+            db.insertToTableChat(currentTime);
+            for(String message : messages){
+                db.insertMessage(message);
+            }
+            System.out.println("Save successfully");
         }
     }
     public class ReceiveMessageHandler extends Thread {
         @Override
         public void run() {
-            StackOfMessage process = new StackOfMessage();
+            stackOfReceiveMessage = new StackOfMessage();
             String clientMessage;
             Scanner scanner;
             try {
@@ -142,15 +155,37 @@ public class ChatServer {
             while (scanner.hasNextLine()) {
                 try {
                     clientMessage = scanner.nextLine();
-                    process.receiveMessage(clientMessage);
+                    // L1VuZG8 just means /Undo encode to base64
+                    if (clientMessage.equals("L1VuZG8")) {
+                        undoReceiveMessage();
+                    } else {
+                        stackOfReceiveMessage.pushMessage(clientMessage);
+                        messages.add(clientMessage);
+                        chatView.printMessage(clientMessage);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
-                } finally {
-                    String received = process.getMessage();
-                    messages.add(received);
-                    chatView.printMessage(received);
                 }
             }
+        }
+    }
+
+    public void undoReceiveMessage() {
+        if (!stackOfReceiveMessage.isEmpty()) {
+            String message = stackOfReceiveMessage.popMessage();
+            chatView.undoMessage(message);
+            // Remove the message for saving in DB
+            messages.removeIf(m -> m.equals(message));
+        }
+    }
+    public void undoSendMessage() {
+        if (!stackOfSendMessage.isEmpty()) {
+            // Undo the message and send a command for undo
+            String message = stackOfSendMessage.popMessage();
+            chatView.undoMessage(message);
+            // Remove the message for saving in DB
+            messages.removeIf(m -> m.equals(message));
+            sendMessage("L1VuZG8");
         }
     }
     public static void main(String[] args) {
