@@ -3,7 +3,7 @@ package server;
 import transport.BufferOfMessage;
 import process.StackOfMessage;
 import db.DB;
-import view.ChatView;
+import view.ServerChatView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ChatServer {
-    private ChatView chatView;
+    private ServerChatView chatView;
     private ServerSocket server;
     private Socket client;
     private PrintWriter out;
@@ -33,7 +33,7 @@ public class ChatServer {
 
     public ChatServer() {
         try {
-            chatView = new ChatView(this);
+            chatView = new ServerChatView(this);
             chatView.setTitle("Chat w Me - Server");
             chatView.setVisible(true);
         } catch (Exception e) {

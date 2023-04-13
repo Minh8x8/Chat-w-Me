@@ -13,7 +13,7 @@ import java.util.List;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
-public class ChatView extends JFrame {
+public class ServerChatView extends JFrame {
 
     private JPanel contentPane;
     private JTextField inputField;
@@ -24,7 +24,7 @@ public class ChatView extends JFrame {
     /**
      * Create the frame.
      */
-    public ChatView(ChatServer server) {
+    public ServerChatView(ChatServer server) {
         this.server = server;
         try {
             UIManager.setLookAndFeel( new FlatLightLaf() );
